@@ -24,6 +24,40 @@ def init_db():
     conn.close()
 
 
+def get_status():
+    """Show all active timers and their elapsed time"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    # Get all active sessions (where end_time is NULL)
+    c.execute(
+        """
+        SELECT label, start_time
+        FROM time_entries
+        WHERE end_time IS NULL
+    """
+    )
+
+    active_sessions = c.fetchall()
+    conn.close()
+
+    if not active_sessions:
+        print("No active timers")
+        return
+
+    print("\nActive timers:")
+    print("-" * 50)
+    current_time = datetime.now()
+
+    for label, start_time_str in active_sessions:
+        start_time = datetime.fromisoformat(start_time_str)
+        elapsed = current_time - start_time
+        hours = elapsed.total_seconds() / 3600
+        print(
+            f"{label}: running for {hours:.2f} hours (started at {start_time.strftime('%Y-%m-%d %H:%M:%S')})"
+        )
+
+
 def start_time(label):
     """Start timing for a given label"""
     conn = sqlite3.connect(DB_PATH)
@@ -106,7 +140,7 @@ def get_hours(month):
 def main():
     parser = argparse.ArgumentParser(description="Time tracking tool")
     parser.add_argument(
-        "action", choices=["start", "stop", "hours"], help="Action to perform"
+        "action", choices=["start", "stop", "hours", "status"], help="Action to perform"
     )
     parser.add_argument(
         "-l", "--label", help="Label for the time entry", default="work"
@@ -141,6 +175,9 @@ def main():
             print("Error: Valid month (-m) is required for hours action")
             sys.exit(1)
         get_hours(args.month)
+
+    elif args.action == "status":
+        get_status()
 
 
 if __name__ == "__main__":
