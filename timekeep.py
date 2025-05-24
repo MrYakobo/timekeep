@@ -107,7 +107,7 @@ def stop_time(label):
     conn.close()
 
 
-def get_hours(month):
+def get_hours(month, sek_per_hour):
     """Get total hours for a given month"""
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -134,7 +134,8 @@ def get_hours(month):
     print(f"\nHours for month {month}:")
     print("-" * 30)
     for label, hours in results:
-        print(f"{label}: {hours:.2f} hours")
+        netto_sek = int(hours * sek_per_hour * 0.75 * 0.7)
+        print(f"{label}: {hours:.2f} hours = {netto_sek} SEK")
 
 
 def main():
@@ -151,6 +152,13 @@ def main():
         type=int,
         default=datetime.now().month,
         help="Month number (1-12)",
+    )
+    parser.add_argument(
+        "--sek-per-hour",
+        "--sek",
+        type=int,
+        default=350,
+        help="SEK per hour",
     )
 
     args = parser.parse_args()
@@ -174,7 +182,7 @@ def main():
         if not args.month or not (1 <= args.month <= 12):
             print("Error: Valid month (-m) is required for hours action")
             sys.exit(1)
-        get_hours(args.month)
+        get_hours(args.month, args.sek_per_hour)
 
     elif args.action == "status":
         get_status()
@@ -182,3 +190,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
