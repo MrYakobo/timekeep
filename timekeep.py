@@ -4,9 +4,29 @@ import argparse
 from datetime import datetime
 import sys
 import os
+import shutil
+import glob
 
 DB_PATH = os.path.expanduser("~/.local/share/timekeep/timekeep.sqlite")
+BACKUP_DIR = os.path.join(os.path.dirname(DB_PATH), "backups")
+BACKUP_KEEP = 30  # number of backups to retain
+
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+
+
+def backup_db():
+    """Back up the database, keeping only the most recent BACKUP_KEEP copies."""
+    if not os.path.exists(DB_PATH):
+        return
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = os.path.join(BACKUP_DIR, f"timekeep_{timestamp}.sqlite")
+    shutil.copy2(DB_PATH, backup_path)
+
+    # Prune old backups
+    backups = sorted(glob.glob(os.path.join(BACKUP_DIR, "timekeep_*.sqlite")))
+    for old in backups[:-BACKUP_KEEP]:
+        os.remove(old)
 
 
 def init_db():
@@ -163,8 +183,9 @@ def main():
 
     args = parser.parse_args()
 
-    # Initialize database
+    # Initialize database and back it up
     init_db()
+    backup_db()
 
     if args.action == "start":
         if not args.label:
